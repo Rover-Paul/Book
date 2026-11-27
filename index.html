@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>독서</title>
+<meta name="description" content="읽은 책을 한 곳에, 나만의 책장">
+<meta name="theme-color" content="#1b64da">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="독서">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{
+  --blue:#1b64da; --blue-d:#1450b4; --blue-l:#edf3fd; --navy:#13306b;
+  --red:#ef4b3f; --ink:#222; --sub:#555; --mute:#999; --line:#e4e6ea; --bg:#f5f6f8;
+  --r:6px; --wrap:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR","Segoe UI",sans-serif;
+  color:var(--ink);background:#fff;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;word-break:keep-all;overflow-wrap:anywhere}
+button{font:inherit;border:0;background:none;cursor:pointer;color:inherit}
+button:disabled{opacity:.45;cursor:default}
+input,textarea{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+.hidden{display:none!important}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 16px}
+
+/* 버튼 */
+.btn-primary{background:var(--blue);color:#fff;border-radius:var(--r);padding:0 18px;height:42px;font-weight:700;transition:background .12s}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-line{border:1px solid #cfd3d9;background:#fff;border-radius:var(--r);padding:0 16px;height:42px;font-weight:600;color:#333}
+.btn-line:hover{border-color:#999}
+.btn-line.danger{color:var(--red)}
+.btn-lg{height:54px;padding:0 44px;font-size:17px;border-radius:30px}
+
+/* ---------- 입장 화면 ---------- */
+.intro{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#fff 0%,#fff 55%,var(--blue-l) 100%);text-align:center;padding:24px}
+.intro-books{display:flex;align-items:flex-end;justify-content:center;gap:5px;height:84px;margin-bottom:22px}
+.intro-books i{display:block;width:18px;border-radius:3px 3px 1px 1px;box-shadow:inset -3px 0 0 rgba(0,0,0,.12)}
+.intro-books i:nth-child(1){height:62px;background:var(--blue)}
+.intro-books i:nth-child(2){height:80px;background:var(--navy)}
+.intro-books i:nth-child(3){height:54px;background:#f2b43c}
+.intro-books i:nth-child(4){height:70px;background:var(--red);transform:rotate(8deg);transform-origin:bottom left;margin-left:4px}
+.logo-big{font-size:64px;font-weight:900;letter-spacing:-3px;color:var(--blue);line-height:1}
+.intro-sub{margin:14px 0 36px;color:var(--sub);font-size:16px}
+.key{width:100%;max-width:280px;margin:-14px 0 18px}
+.key .inp{text-align:center;height:50px;border-radius:26px;font-size:16px}
+.key-msg{font-size:12px;color:var(--mute);margin-top:8px}
+.key-msg.err{color:var(--red);font-weight:600}
+.demo{margin-top:18px;font-size:12px;color:var(--mute);line-height:1.6}
+.intro-foot{position:fixed;bottom:22px;left:0;right:0;color:var(--mute);font-size:12px;letter-spacing:2px}
+
+/* ---------- 헤더 ---------- */
+.hd{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line)}
+.hd-top{display:flex;align-items:center;gap:20px;height:76px}
+.logo{display:flex;align-items:center;gap:6px;font-size:28px;font-weight:900;letter-spacing:-1.5px;color:var(--blue);flex:none}
+.logo svg{width:26px;height:26px}
+.search{flex:1;max-width:560px;display:flex;height:44px;border:2px solid var(--blue);border-radius:24px;overflow:hidden;background:#fff}
+.search input{flex:1;min-width:0;border:0;outline:0;padding:0 18px;font-size:15px;background:transparent}
+.search input::-webkit-search-cancel-button{cursor:pointer}
+.search-btn{width:48px;display:grid;place-items:center;color:var(--blue)}
+.search-btn svg{width:20px;height:20px}
+.add-btn{margin-left:auto;flex:none}
+.gnb{display:flex;gap:26px;height:44px;align-items:center;font-weight:700;font-size:15px}
+.gnb button{height:100%;position:relative;color:#333}
+.gnb button.on{color:var(--blue)}
+.gnb button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--blue)}
+
+/* ---------- 목록 ---------- */
+.view{animation:fade .14s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.list-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:26px 0 14px;border-bottom:2px solid #222}
+.list-head h2{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.list-head h2 em{font-style:normal;color:var(--blue)}
+.list-head .total{font-size:13px;font-weight:400;color:var(--mute);margin-left:6px;letter-spacing:0}
+.sort{display:flex;align-items:center;font-size:13px;color:var(--mute);flex:none}
+.sort button{padding:2px 0;color:var(--mute)}
+.sort button.on{color:var(--ink);font-weight:700}
+.sort span{width:1px;height:11px;background:#ccc;margin:0 10px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:34px 22px;padding:26px 0 60px}
+.card{display:flex;flex-direction:column;text-align:left;min-width:0}
+.cover{position:relative;aspect-ratio:3/4.2;border:1px solid #e1e3e6;background:var(--bg);overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);transition:transform .15s,box-shadow .15s}
+.card:hover .cover{transform:translateY(-3px);box-shadow:0 8px 18px rgba(0,0,0,.14)}
+.cover img{width:100%;height:100%;object-fit:cover}
+.noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:14px;text-align:center;
+  background:linear-gradient(160deg,var(--blue) 0%,var(--navy) 100%);color:#fff;font-weight:800;font-size:16px;line-height:1.35}
+.noimg span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;border-top:2px solid rgba(255,255,255,.5);border-bottom:2px solid rgba(255,255,255,.5);padding:8px 0}
+.badge{position:absolute;top:0;left:8px;background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:4px 5px 3px;letter-spacing:.5px}
+.pend{position:absolute;left:0;right:0;bottom:0;background:rgba(27,100,218,.9);color:#fff;font-size:12px;text-align:center;padding:5px 0;font-weight:600}
+.card .t{margin-top:12px;font-size:15px;font-weight:700;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card:hover .t{text-decoration:underline}
+.card .c{margin-top:4px;font-size:13px;color:#777;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .d{margin-top:6px;font-size:12px;color:var(--mute)}
+
+.skel .cover{background:linear-gradient(90deg,#eef0f3 0%,#f7f8fa 50%,#eef0f3 100%);background-size:200% 100%;animation:shine 1s linear infinite;box-shadow:none}
+.skel .t,.skel .c{height:14px;background:#eef0f3;border-radius:3px}
+.skel .c{width:60%}
+@keyframes shine{to{background-position:-200% 0}}
+
+.empty{text-align:center;padding:80px 16px 100px;color:var(--sub)}
+.empty b{display:block;font-size:18px;color:var(--ink);margin-bottom:6px}
+.empty .btn-primary{margin-top:22px}
+
+/* ---------- 공통 페이지 헤더 ---------- */
+.page-head{display:flex;align-items:center;gap:6px;padding:22px 0 14px;border-bottom:2px solid #222}
+.page-head h2{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.back{width:34px;height:34px;display:grid;place-items:center;margin-left:-8px;border-radius:50%}
+.back:hover{background:var(--bg)}
+.back svg{width:22px;height:22px}
+
+/* ---------- 등록/수정 ---------- */
+.form{padding:26px 0 40px}
+.form-grid{display:grid;grid-template-columns:260px 1fr;gap:34px}
+.photo{position:relative;display:block;aspect-ratio:3/4.2;border:1px dashed #b8c3d4;border-radius:var(--r);background:var(--bg);cursor:pointer;overflow:hidden;transition:border-color .12s}
+.photo:hover{border-color:var(--blue)}
+.photo img{width:100%;height:100%;object-fit:cover}
+.photo-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--blue);font-weight:700}
+.photo-ph svg{width:38px;height:38px}
+.photo-ph small{color:var(--mute);font-weight:400;font-size:12px}
+.photo-tools{display:flex;justify-content:space-between;margin-top:10px;font-size:13px}
+.link{color:var(--sub);text-decoration:underline;text-underline-offset:2px}
+.link.danger{color:var(--red)}
+.lbl{display:block;font-weight:700;margin:0 0 8px;font-size:15px}
+.lbl b{color:var(--red)}
+.lbl+.inp{margin-bottom:22px}
+.inp{width:100%;border:1px solid #cfd3d9;border-radius:var(--r);padding:12px 14px;font-size:15px;outline:0;background:#fff;transition:border-color .12s,box-shadow .12s}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,100,218,.12)}
+.ta{min-height:320px;resize:vertical;line-height:1.7;margin-bottom:6px!important}
+.len{text-align:right;font-size:12px;color:var(--mute)}
+.form-actions{display:flex;justify-content:center;gap:10px;margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
+.form-actions button{min-width:140px}
+
+/* ---------- 상세 ---------- */
+.detail{display:grid;grid-template-columns:300px 1fr;gap:40px;padding:30px 0}
+.d-cover{aspect-ratio:3/4.2;border:1px solid #e1e3e6;box-shadow:0 6px 18px rgba(0,0,0,.12);overflow:hidden;background:var(--bg)}
+.d-cover.has{cursor:zoom-in}
+.d-cover img{width:100%;height:100%;object-fit:cover}
+.d-cover .noimg{font-size:22px}
+.d-tag{display:inline-block;font-size:12px;font-weight:700;color:var(--blue);border:1px solid var(--blue);border-radius:3px;padding:1px 7px}
+.d-info h1{font-size:28px;line-height:1.3;font-weight:800;letter-spacing:-.6px;margin:12px 0 18px}
+.d-meta{display:grid;grid-template-columns:76px 1fr;row-gap:10px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px}
+.d-meta dt{color:var(--mute)}
+.d-actions{display:flex;gap:8px;margin-top:22px}
+.d-actions button{min-width:96px}
+.d-body{padding:10px 0 70px}
+.d-body h3{font-size:18px;font-weight:800;padding-bottom:12px;border-bottom:2px solid #222;margin-bottom:20px}
+.d-content{white-space:pre-wrap;line-height:1.85;font-size:15px;color:#333}
+.d-content.none{color:var(--mute)}
+
+/* ---------- 기타 ---------- */
+.fab{display:none}
+.foot{border-top:1px solid var(--line);background:var(--bg);color:var(--mute);font-size:12px;text-align:center;padding:22px 16px}
+#toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);background:rgba(30,30,30,.92);color:#fff;padding:11px 20px;border-radius:24px;font-size:14px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:100;max-width:calc(100% - 32px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:90;padding:20px}
+.modal-box{background:#fff;border-radius:10px;width:100%;max-width:340px;padding:26px 22px 18px;text-align:center}
+.modal-box p{white-space:pre-line;font-size:15px;line-height:1.6;margin-bottom:22px}
+.modal-btns{display:flex;gap:8px}
+.modal-btns button{flex:1}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:95;padding:16px;cursor:zoom-out}
+.lightbox img{max-height:100%;object-fit:contain}
+
+/* ---------- 반응형 ---------- */
+@media (max-width:860px){
+  .detail{grid-template-columns:220px 1fr;gap:26px}
+  .form-grid{grid-template-columns:200px 1fr;gap:22px}
+}
+@media (max-width:640px){
+  body{font-size:14px}
+  .wrap{padding:0 14px}
+  .hd-top{flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:10px;gap:10px 12px}
+  .logo{font-size:24px}
+  .logo svg{width:22px;height:22px}
+  .search{order:3;flex:1 0 100%;max-width:none;height:42px}
+  .add-btn{height:36px;padding:0 12px;font-size:13px}
+  .gnb{display:none}
+  .list-head{padding-top:18px}
+  .list-head h2{font-size:19px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 14px;padding:18px 0 90px}
+  .card .t{font-size:14px;margin-top:10px}
+  .page-head{padding-top:14px}
+  .page-head h2{font-size:19px}
+  .form{padding-top:18px;padding-bottom:96px}
+  .form-grid{grid-template-columns:1fr}
+  .photo-col{width:62%;max-width:240px;margin:0 auto}
+  .ta{min-height:220px}
+  .form-actions{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);margin:0;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));z-index:30}
+  .form-actions button{flex:1;min-width:0;height:48px}
+  .detail{grid-template-columns:1fr;gap:20px;padding-top:20px}
+  .d-cover{width:62%;max-width:240px;margin:0 auto}
+  .d-info h1{font-size:22px;margin:10px 0 14px}
+  .d-actions button{flex:1}
+  .is-list .fab{display:grid;place-items:center;position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;
+    background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(27,100,218,.4);z-index:25}
+  .fab svg{width:26px;height:26px}
+  .is-list .add-btn{display:none}
+  .logo-big{font-size:56px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- 입장 화면 -->
+<section id="intro" class="intro">
+  <div class="intro-books" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <h1 class="logo-big">독서</h1>
+  <p class="intro-sub">읽은 책을 한 곳에, 나만의 책장</p>
+  <form id="keyForm" class="key hidden" autocomplete="off">
+    <input id="keyInp" type="password" class="inp" placeholder="앱 비밀번호" autocomplete="current-password" enterkeyhint="go">
+    <p class="key-msg" id="keyMsg">처음 한 번만 입력하면 돼요</p>
+  </form>
+  <button id="enterBtn" class="btn-primary btn-lg">입장하기</button>
+  <p class="demo hidden" id="demoNote">미리보기 모드예요 · 이 기기에만 저장돼요<br>index.html의 API_URL을 설정하면 구글 드라이브에 저장돼요</p>
+  <p class="intro-foot">MY READING SHELF</p>
+</section>
+
+<!-- 앱 -->
+<div id="app" class="hidden">
+  <header class="hd">
+    <div class="wrap hd-top">
+      <button class="logo" data-go="list" aria-label="독서 홈">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 6.5C10 5 7 4.5 3 5v14c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5Z"/><path d="M12 6.5V20"/></svg>
+        독서
+      </button>
+      <form class="search" id="searchForm" role="search">
+        <input id="q" type="search" placeholder="책 이름이나 내용을 검색해 보세요" autocomplete="off" enterkeyhint="search">
+        <button class="search-btn" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+      </form>
+      <button class="btn-primary add-btn" data-go="edit">+ 책 등록</button>
+    </div>
+    <nav class="wrap gnb">
+      <button class="on" data-go="list" id="gnbList">내 책장</button>
+      <button data-go="edit" id="gnbNew">새 책 등록</button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <!-- 목록 -->
+    <section id="vList" class="view">
+      <div class="list-head">
+        <h2 id="listTitle">내 책장 <em id="cnt">0</em><span class="total">권</span></h2>
+        <div class="sort">
+          <button data-sort="new" class="on">최신순</button><span></span><button data-sort="title">제목순</button>
+        </div>
+      </div>
+      <div id="grid" class="grid"></div>
+      <div id="empty" class="empty hidden"></div>
+    </section>
+
+    <!-- 등록 / 수정 -->
+    <section id="vEdit" class="view hidden">
+      <div class="page-head">
+        <button class="back" data-go="back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+        <h2 id="editTitle">새 책 등록</h2>
+      </div>
+      <form id="form" class="form" autocomplete="off" novalidate>
+        <div class="form-grid">
+          <div class="photo-col">
+            <label class="photo" id="photoBox">
+              <input type="file" id="file" accept="image/*" hidden>
+              <img id="photoPrev" class="hidden" alt="책 사진 미리보기">
+              <span class="photo-ph" id="photoPh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/></svg>
+                책 사진 추가
+                <small>표지나 인상 깊은 페이지</small>
+              </span>
+            </label>
+            <div class="photo-tools hidden" id="photoTools">
+              <button type="button" class="link" id="photoChange">사진 변경</button>
+              <button type="button" class="link danger" id="photoDel">사진 삭제</button>
+            </div>
+          </div>
+          <div class="field-col">
+            <label class="lbl" for="fTitle">책 이름 <b>*</b></label>
+            <input id="fTitle" class="inp" maxlength="200" placeholder="예) 데미안" enterkeyhint="next">
+            <label class="lbl" for="fContent">책 내용</label>
+            <textarea id="fContent" class="inp ta" maxlength="40000" placeholder="줄거리, 인상 깊은 문장, 느낀 점을 자유롭게 적어 보세요"></textarea>
+            <div class="len"><span id="len">0</span> / 40,000자</div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-line" data-go="back">취소</button>
+          <button type="submit" class="btn-primary" id="saveBtn">저장하기</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 상세 -->
+    <section id="vDetail" class="view hidden">
+      <div class="page-head">
+        <button class="back" data-go="back" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+        <h2>책 정보</h2>
+      </div>
+      <article class="detail">
+        <div class="d-cover" id="dCover"></div>
+        <div class="d-info">
+          <span class="d-tag">내 책장</span>
+          <h1 id="dTitle"></h1>
+          <dl class="d-meta" id="dMeta"></dl>
+          <div class="d-actions">
+            <button class="btn-line" id="dEdit">수정</button>
+            <button class="btn-line danger" id="dDel">삭제</button>
+          </div>
+        </div>
+      </article>
+      <section class="d-body">
+        <h3>책 내용</h3>
+        <div id="dContent" class="d-content"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="foot">독서 · 나만의 책장<span id="logoutWrap"> · <button class="link" id="logout">비밀번호 다시 입력</button></span></footer>
+  <button class="fab" data-go="edit" aria-label="책 등록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <p id="mMsg"></p>
+    <div class="modal-btns"><button class="btn-line" id="mNo">취소</button><button class="btn-primary" id="mYes">삭제</button></div>
+  </div>
+</div>
+<div id="lightbox" class="lightbox hidden"><img id="lbImg" alt=""></div>
+
+<script>
+(() => {
+'use strict';
+/* ================= 설정 =================
+ * 구글 스크립트를 '웹 앱'으로 배포한 주소(https://script.google.com/macros/s/…/exec)를
+ * 아래 따옴표 안에 붙여 넣으세요. 비워 두면 '미리보기 모드'(이 기기에만 저장)로 동작합니다. */
+const API_URL = '';
+/* ======================================== */
+
+const $ = s => document.querySelector(s);
+const DEMO = !API_URL;
+const CK = 'reading_app_cache_v1';
+const KK = 'reading_app_key';
+const S = { books: null, ver: '', view: 'intro', detailId: null, editId: null,
+            q: '', sort: 'new', imgP: null, removeImg: false, listY: 0, prevUrl: '', editFrom: 'list', key: '' };
+try { S.key = localStorage.getItem(KK) || ''; } catch (e) {}
+const full = {};      // 책 id → 원본 사진
+const loading = {};
+
+/* ---------- 서버 호출 ---------- */
+async function api(fn, ...args) {
+  if (DEMO) return Mock[fn](...args);
+  let res, j;
+  try {
+    // text/plain 으로 보내야 구글 스크립트에서 CORS 사전 요청 없이 바로 처리됩니다
+    res = await fetch(API_URL, { method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ key: S.key, action: fn, args: args }) });
+  } catch (e) {
+    throw new Error('서버에 연결하지 못했어요. 인터넷 연결과 API 주소·배포 설정을 확인해 주세요.');
+  }
+  try { j = await res.json(); } catch (e) { throw new Error('서버 응답을 읽지 못했어요. 웹 앱 배포의 액세스가 “모든 사용자”인지 확인해 주세요.'); }
+  if (!j.ok) { const er = new Error(j.error || '알 수 없는 오류'); er.code = j.code; throw er; }
+  return j.data;
+}
+const authErr = e => e && (e.code === 'AUTH' || e.code === 'SETUP');
+const em = e => String((e && e.message) || e || '알 수 없는 오류').replace(/^(Exception|Error):\s*/, '');
+
+/* ---------- 로컬 캐시 (재방문 시 즉시 표시) ---------- */
+function readCache() {
+  try { const c = JSON.parse(localStorage.getItem(CK) || 'null'); if (c && Array.isArray(c.books)) return c; } catch (e) {}
+  return null;
+}
+function writeCache() {
+  if (!S.books) return;
+  try { localStorage.setItem(CK, JSON.stringify({ ver: S.ver, books: S.books.filter(b => !b._p) })); }
+  catch (e) { try { localStorage.removeItem(CK); } catch (_) {} }
+}
+
+/* ---------- 동기화: 입장 화면이 떠 있는 동안 미리 불러옴 ---------- */
+function sync() {
+  return api('getBooks', S.ver).then(r => {
+    if (!r.same) {
+      const pend = (S.books || []).filter(b => b._p);
+      const pid = new Set(pend.map(b => b.id));
+      S.books = pend.concat(r.books.filter(b => !pid.has(b.id)));
+      S.ver = r.ver;
+      writeCache();
+      refresh();
+    }
+  }).catch(e => {
+    if (authErr(e)) { toIntro(em(e)); return; }
+    if (!S.books) S.books = [];
+    refresh();
+    toast('목록을 불러오지 못했어요. ' + em(e));
+  });
+}
+
+/* ---------- 유틸 ---------- */
+const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC[c]);
+const safeImg = s => /^(data:image\/[a-z+]+;base64,|blob:)/.test(s || '') ? s : '';
+const find = id => (S.books || []).find(b => b.id === id);
+const pad = n => String(n).padStart(2, '0');
+function fmt(ms, long) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return long ? `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`
+              : `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+}
+const isNew = b => Date.now() - b.createdAt < 3 * 864e5;
+let tt;
+function toast(m) {
+  const t = $('#toast'); t.textContent = m; t.classList.add('on');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2300);
+}
+
+/* ---------- 화면 전환 ---------- */
+const VIEWS = { list: '#vList', edit: '#vEdit', detail: '#vDetail' };
+function show(v, id) {
+  if (S.view === 'list') S.listY = window.scrollY;
+  if (v === 'edit') S.editFrom = S.view;
+  S.view = v;
+  for (const k in VIEWS) $(VIEWS[k]).classList.toggle('hidden', k !== v);
+  document.body.classList.toggle('is-list', v === 'list');
+  $('#gnbList').classList.toggle('on', v === 'list' || v === 'detail');
+  $('#gnbNew').classList.toggle('on', v === 'edit' && !id);
+  if (v === 'list') { renderList(); window.scrollTo(0, S.listY); return; }
+  if (v === 'detail') { S.detailId = id; renderDetail(); }
+  if (v === 'edit') openEditor(id);
+  window.scrollTo(0, 0);
+}
+// 브라우저/휴대폰 뒤로 가기 버튼과 연동
+function go(v, id, replace) {
+  show(v, id);
+  const d = (history.state && history.state.d) || 0;
+  const st = { v: v, id: id || '', d: replace ? d : d + 1 };
+  try { history[replace ? 'replaceState' : 'pushState'](st, ''); } catch (e) {}
+}
+function back(v, id) {
+  if (history.state && history.state.d > 0) history.back();
+  else go(v, id, true);
+}
+window.addEventListener('popstate', e => {
+  const st = e.state;
+  if (!st || !VIEWS[st.v] || $('#app').classList.contains('hidden')) return;
+  show(st.v, st.id || null);
+});
+function refresh() {
+  if (S.view === 'list') renderList();
+  else if (S.view === 'detail') renderDetail();
+}
+
+function keyMsg(m, err) { const k = $('#keyMsg'); k.textContent = m; k.classList.toggle('err', !!err); }
+function enter() {
+  if (!DEMO && !S.key) {
+    const k = $('#keyInp').value.trim();
+    if (!k) { keyMsg('비밀번호를 입력해 주세요', true); $('#keyInp').focus(); return; }
+    S.key = k;
+    try { localStorage.setItem(KK, k); } catch (e) {}
+    S.books = null; S.ver = '';
+    sync();   // 확인은 뒤에서, 화면은 바로 입장
+  }
+  $('#keyInp').blur();
+  $('#intro').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  go('list', null, true);
+}
+function toIntro(msg) {
+  S.key = ''; S.books = null; S.ver = '';
+  try { localStorage.removeItem(KK); localStorage.removeItem(CK); } catch (e) {}
+  for (const k in full) delete full[k];
+  S.view = 'intro';
+  $('#app').classList.add('hidden');
+  $('#intro').classList.remove('hidden');
+  $('#keyForm').classList.remove('hidden');
+  $('#keyInp').value = '';
+  keyMsg(msg || '처음 한 번만 입력하면 돼요', !!msg);
+  try { history.replaceState({ v: 'intro', d: 0 }, ''); } catch (e) {}
+}
+
+/* ---------- 목록 ---------- */
+function card(b) {
+  const src = safeImg(b.thumb);
+  const cover = src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async">`
+                    : `<div class="noimg"><span>${esc(b.title.slice(0, 40))}</span></div>`;
+  return `<button class="card" data-id="${esc(b.id)}">
+    <div class="cover">${cover}${isNew(b) && !b._p ? '<span class="badge">NEW</span>' : ''}${b._p ? '<span class="pend">저장 중…</span>' : ''}</div>
+    <strong class="t">${esc(b.title)}</strong>
+    ${b.content ? `<p class="c">${esc(b.content.slice(0, 90))}</p>` : ''}
+    <span class="d">${fmt(b.createdAt)}</span>
+  </button>`;
+}
+const SKEL = Array(8).fill('<div class="card skel"><div class="cover"></div><div class="t"></div><div class="c"></div></div>').join('');
+
+function renderList() {
+  const grid = $('#grid'), empty = $('#empty');
+  if (!S.books) { grid.innerHTML = SKEL; empty.classList.add('hidden'); $('#cnt').textContent = '-'; return; }
+
+  const q = S.q.trim().toLowerCase();
+  let list = q ? S.books.filter(b => (b.title + '\n' + b.content).toLowerCase().includes(q)) : S.books.slice();
+  if (S.sort === 'title') list.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+  else list.sort((a, b) => b.createdAt - a.createdAt);
+
+  $('#listTitle').firstChild.nodeValue = q ? '검색 결과 ' : '내 책장 ';
+  $('#cnt').textContent = list.length.toLocaleString();
+  grid.innerHTML = list.map(card).join('');
+
+  if (list.length) { empty.classList.add('hidden'); return; }
+  empty.innerHTML = q
+    ? `<b>‘${esc(S.q.trim())}’에 대한 검색 결과가 없어요</b>다른 검색어로 찾아보세요.`
+    : `<b>아직 등록된 책이 없어요</b>첫 번째 책을 등록하고 나만의 책장을 채워 보세요.<br><button class="btn-primary" data-go="edit">+ 첫 책 등록하기</button>`;
+  empty.classList.remove('hidden');
+}
+
+/* ---------- 상세 ---------- */
+function renderDetail() {
+  const b = find(S.detailId);
+  if (!b) { go('list', null, true); return; }
+  const cov = $('#dCover');
+  const src = safeImg(full[b.id] || b.thumb);
+  cov.classList.toggle('has', !!src);
+  cov.innerHTML = src ? `<img id="dImg" src="${esc(src)}" alt="${esc(b.title)} 사진">`
+                      : `<div class="noimg"><span>${esc(b.title)}</span></div>`;
+  $('#dTitle').textContent = b.title;
+  let meta = `<dt>등록일</dt><dd>${fmt(b.createdAt, 1)}</dd>`;
+  if (b.updatedAt - b.createdAt > 60000) meta += `<dt>수정일</dt><dd>${fmt(b.updatedAt, 1)}</dd>`;
+  meta += `<dt>글자 수</dt><dd>${b.content.length.toLocaleString()}자</dd>`;
+  if (b._p) meta += `<dt>상태</dt><dd style="color:var(--blue)">저장 중…</dd>`;
+  $('#dMeta').innerHTML = meta;
+  const dc = $('#dContent');
+  dc.textContent = b.content || '등록된 내용이 없어요.';
+  dc.classList.toggle('none', !b.content);
+  $('#dEdit').disabled = $('#dDel').disabled = !!b._p;
+  if (b.hasImage && !b._p) loadFull(b.id);
+}
+function loadFull(id) {
+  if (full[id] || loading[id]) return;
+  loading[id] = 1;
+  api('getImage', id).then(u => {
+    delete loading[id];
+    if (!u) return;
+    full[id] = u;
+    if (S.view === 'detail' && S.detailId === id) { const im = $('#dImg'); if (im) im.src = u; }
+  }).catch(() => { delete loading[id]; });
+}
+
+/* ---------- 등록 / 수정 ---------- */
+function setPreview(src) {
+  const img = $('#photoPrev');
+  if (src) { img.src = src; img.classList.remove('hidden'); }
+  else { img.removeAttribute('src'); img.classList.add('hidden'); }
+  $('#photoPh').classList.toggle('hidden', !!src);
+  $('#photoTools').classList.toggle('hidden', !src);
+}
+function updLen() { $('#len').textContent = $('#fContent').value.length.toLocaleString(); }
+
+function openEditor(id) {
+  const b = id ? find(id) : null;
+  if (id && (!b || b._p)) { go('list', null, true); return; }
+  S.editId = b ? b.id : null; S.imgP = null; S.removeImg = false;
+  $('#editTitle').textContent = b ? '책 정보 수정' : '새 책 등록';
+  $('#saveBtn').textContent = b ? '수정 완료' : '저장하기';
+  $('#fTitle').value = b ? b.title : '';
+  $('#fContent').value = b ? b.content : '';
+  $('#file').value = '';
+  setPreview(b ? safeImg(full[b.id] || b.thumb) : '');
+  updLen();
+  if (!b && matchMedia('(hover:hover)').matches) setTimeout(() => $('#fTitle').focus(), 0);
+}
+
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { res(img); URL.revokeObjectURL(url); };
+    img.onerror = () => { rej(new Error('이 사진은 읽을 수 없어요. JPG나 PNG로 시도해 주세요.')); URL.revokeObjectURL(url); };
+    img.src = url;
+  });
+}
+function draw(img, max, q) {
+  let w = img.naturalWidth, h = img.naturalHeight;
+  const s = Math.min(1, max / Math.max(w, h));
+  w = Math.max(1, Math.round(w * s)); h = Math.max(1, Math.round(h * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', q);
+}
+// 사진을 고르는 즉시 압축 시작 → 저장 버튼을 누를 땐 이미 준비 완료
+async function processImage(file) {
+  const img = await loadImg(file);
+  const big = draw(img, 1400, 0.82);
+  let max = 320, q = 0.72, thumb = draw(img, max, q);
+  while (thumb.length > 40000 && max > 120) {
+    q -= 0.12;
+    if (q < 0.4) { max = Math.round(max * 0.8); q = 0.65; }
+    thumb = draw(img, max, q);
+  }
+  return { full: big, thumb: thumb };
+}
+
+$('#file').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  if (S.prevUrl) URL.revokeObjectURL(S.prevUrl);
+  S.prevUrl = URL.createObjectURL(f);
+  setPreview(S.prevUrl);
+  S.removeImg = false;
+  const p = processImage(f);
+  S.imgP = p;
+  p.catch(err => {
+    if (S.imgP !== p) return;
+    S.imgP = null; toast(em(err));
+    const b = S.editId && find(S.editId);
+    setPreview(b ? safeImg(full[b.id] || b.thumb) : '');
+  });
+});
+$('#photoChange').addEventListener('click', () => $('#file').click());
+$('#photoDel').addEventListener('click', () => { S.imgP = null; S.removeImg = true; $('#file').value = ''; setPreview(''); });
+$('#fContent').addEventListener('input', updLen);
+$('#fTitle').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('#fContent').focus(); } });
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const title = $('#fTitle').value.trim();
+  const content = $('#fContent').value;
+  if (!title) { toast('책 이름을 입력해 주세요'); $('#fTitle').focus(); return; }
+
+  let img = null;
+  if (S.imgP) {
+    $('#saveBtn').disabled = true;
+    try { img = await S.imgP; } catch (err) { $('#saveBtn').disabled = false; return; }
+    $('#saveBtn').disabled = false;
+  }
+  if (!S.books) S.books = [];
+
+  const old = S.editId ? find(S.editId) : null;
+  const now = Date.now();
+  const payload = { id: old ? old.id : '', title, content,
+                    image: img ? img.full : '', thumb: img ? img.thumb : '',
+                    removeImage: !img && S.removeImg };
+  let local;
+  if (old) {
+    local = Object.assign({}, old, { title, content, updatedAt: now, _p: true });
+    if (img) { local.thumb = img.thumb; local.hasImage = true; full[old.id] = img.full; }
+    else if (S.removeImg) { local.thumb = ''; local.hasImage = false; delete full[old.id]; }
+    const oi = S.books.indexOf(old);
+    if (oi > -1) S.books[oi] = local; else S.books.unshift(local);
+  } else {
+    local = { id: 'tmp-' + now, title, content, thumb: img ? img.thumb : '', hasImage: !!img,
+              createdAt: now, updatedAt: now, _p: true };
+    if (img) full[local.id] = img.full;
+    S.books.unshift(local);
+  }
+
+  // 서버 응답을 기다리지 않고 바로 이전 화면으로 (낙관적 저장)
+  if (old) back('detail', old.id);
+  else if (S.editFrom === 'list') back('list');
+  else go('list', null, true);
+
+  api('saveBook', payload).then(saved => {
+    const i = S.books.indexOf(local);
+    if (i > -1) S.books[i] = saved; else S.books.unshift(saved);
+    if (local.id !== saved.id) {
+      if (full[local.id]) { full[saved.id] = full[local.id]; delete full[local.id]; }
+      if (S.detailId === local.id) S.detailId = saved.id;
+    }
+    writeCache(); refresh();
+    toast(old ? '수정되었어요' : '책장에 등록되었어요');
+  }).catch(err => {
+    const i = S.books.indexOf(local);
+    if (old) { if (i > -1) S.books[i] = old; if (img || S.removeImg) delete full[old.id]; }
+    else if (i > -1) { S.books.splice(i, 1); delete full[local.id]; }
+    refresh();
+    if (authErr(err)) { toIntro(em(err)); return; }
+    toast('저장하지 못했어요. ' + em(err));
+  });
+});
+
+/* ---------- 삭제 ---------- */
+function confirmBox(msg) {
+  return new Promise(res => {
+    const m = $('#modal'); $('#mMsg').textContent = msg; m.classList.remove('hidden'); $('#mYes').focus();
+    const done = v => { m.classList.add('hidden'); $('#mYes').onclick = $('#mNo').onclick = m.onclick = null; res(v); };
+    $('#mYes').onclick = () => done(true);
+    $('#mNo').onclick = () => done(false);
+    m.onclick = e => { if (e.target === m) done(false); };
+  });
+}
+$('#dDel').addEventListener('click', () => {
+  const b = find(S.detailId);
+  if (!b || b._p) return;
+  confirmBox(`‘${b.title}’을(를) 삭제할까요?\n삭제한 책은 되돌릴 수 없어요.`).then(ok => {
+    if (!ok) return;
+    const idx = S.books.indexOf(b);
+    S.books.splice(idx, 1);
+    back('list');
+    api('deleteBook', b.id).then(() => { delete full[b.id]; writeCache(); toast('삭제되었어요'); })
+      .catch(err => { S.books.splice(idx, 0, b); refresh(); toast('삭제하지 못했어요. ' + em(err)); });
+  });
+});
+$('#dEdit').addEventListener('click', () => { if (S.detailId) go('edit', S.detailId); });
+$('#dCover').addEventListener('click', () => {
+  const b = find(S.detailId); const src = b && safeImg(full[b.id] || b.thumb);
+  if (!src) return;
+  $('#lbImg').src = src; $('#lightbox').classList.remove('hidden');
+});
+$('#lightbox').addEventListener('click', () => $('#lightbox').classList.add('hidden'));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  $('#lightbox').classList.add('hidden');
+  if (!$('#modal').classList.contains('hidden')) $('#mNo').click();
+});
+
+/* ---------- 공통 클릭 처리 ---------- */
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]');
+  if (g) {
+    e.preventDefault();
+    const v = g.dataset.go;
+    if (v === 'back') {
+      if (S.view === 'edit' && S.editId) back('detail', S.editId);
+      else back('list');
+    } else if (v === 'list') {
+      if (S.q) { S.q = ''; $('#q').value = ''; }
+      go('list', null, S.view === 'list');
+    } else go(v);
+    return;
+  }
+  const c = e.target.closest('.card[data-id]');
+  if (c) go('detail', c.dataset.id);
+});
+// 카드를 누르는 순간 원본 사진을 미리 불러와 상세 화면을 빠르게
+$('#grid').addEventListener('pointerdown', e => {
+  const c = e.target.closest('.card[data-id]');
+  const b = c && find(c.dataset.id);
+  if (b && b.hasImage && !b._p) loadFull(b.id);
+});
+document.querySelectorAll('[data-sort]').forEach(btn => btn.addEventListener('click', () => {
+  S.sort = btn.dataset.sort;
+  document.querySelectorAll('[data-sort]').forEach(x => x.classList.toggle('on', x === btn));
+  renderList();
+}));
+let qRaf = 0;
+$('#q').addEventListener('input', e => {
+  S.q = e.target.value;
+  cancelAnimationFrame(qRaf);
+  qRaf = requestAnimationFrame(() => { if (S.view !== 'list') show('list'); else renderList(); });
+});
+$('#searchForm').addEventListener('submit', e => { e.preventDefault(); $('#q').blur(); if (S.view !== 'list') go('list'); });
+
+$('#enterBtn').addEventListener('click', enter);
+
+$('#keyForm').addEventListener('submit', e => { e.preventDefault(); enter(); });
+$('#logout').addEventListener('click', () => toIntro());
+
+/* ---------- 미리보기 모드용 가짜 서버 (API_URL이 비어 있을 때만) ---------- */
+const Mock = !DEMO ? null : (() => {
+  const K = 'reading_mock_db';
+  const db = () => { try { return JSON.parse(localStorage.getItem(K) || '[]'); } catch (e) { return []; } };
+  const put = d => { try { localStorage.setItem(K, JSON.stringify(d)); } catch (e) {} };
+  const wait = v => new Promise(r => setTimeout(() => r(v), 350));
+  return {
+    getBooks: () => wait({ ver: String(Date.now()), books: db() }),
+    saveBook: p => {
+      const d = db(), now = Date.now();
+      let b = d.find(x => x.id === p.id);
+      if (!b) { b = { id: 'm' + now, createdAt: now, thumb: '', hasImage: false }; d.unshift(b); }
+      Object.assign(b, { title: p.title, content: p.content, updatedAt: now });
+      if (p.image) { b.thumb = p.thumb; b.hasImage = true; } else if (p.removeImage) { b.thumb = ''; b.hasImage = false; }
+      put(d); return wait(Object.assign({}, b));
+    },
+    deleteBook: id => { put(db().filter(x => x.id !== id)); return wait(true); },
+    getImage: id => { const b = db().find(x => x.id === id); return wait(b ? b.thumb : ''); }
+  };
+})();
+
+/* ---------- 시작 ---------- */
+$('#keyForm').classList.toggle('hidden', DEMO || !!S.key);
+$('#demoNote').classList.toggle('hidden', !DEMO);
+$('#logoutWrap').classList.toggle('hidden', DEMO);
+const cache = readCache();
+if (cache && (DEMO || S.key)) { S.books = cache.books; S.ver = cache.ver || ''; }
+if (DEMO || S.key) sync();   // 입장 화면이 떠 있는 동안 미리 불러오기
+// 앱 화면을 기기에 저장해 두고 다음부터 즉시 열기
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+})();
+</script>
+</body>
+</html>
